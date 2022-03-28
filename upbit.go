@@ -85,15 +85,14 @@ func (u *Upbit) createRequest(method, url string, values url.Values, section str
 	switch section {
 	case ApiSectionExchange:
 		if len(values) != 0 {
-			u.queryHash.Reset()
-			u.queryHash.Write([]byte(values.Encode()))
-			claim["query_hash"] = hex.EncodeToString(u.queryHash.Sum(nil))
+			claim["query_hash"] = digestSHA512Binary([]byte(values.Encode()))
 			claim["query_hash_alg"] = "SHA512"
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claim)
 		signedToken, e := token.SignedString([]byte(u.secretKey[:]))
 		if e != nil {
+			fmt.Println(e)
 			return nil, nil
 		}
 
@@ -104,6 +103,12 @@ func (u *Upbit) createRequest(method, url string, values url.Values, section str
 	}
 
 	return request, nil
+}
+
+func digestSHA512Binary(s []byte) string {
+    h := sha512.New()
+    h.Write(s)
+    return hex.EncodeToString(h.Sum(nil))
 }
 
 func (u *Upbit) do(request *http.Request, apiGroup string) (*http.Response, error) {
