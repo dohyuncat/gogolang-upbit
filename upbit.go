@@ -84,19 +84,19 @@ func (u *Upbit) createRequest(method, url string, values url.Values, section str
 
 	switch section {
 	case ApiSectionExchange:
-		if len(values) != 0 {
-			claim["query_hash"] = digestSHA512Binary([]byte(values.Encode()))
+		if len(values) > 0 {
+			claim["query_hash"] = fmt.Sprintf("%x", sha512.Sum512([]byte(values.Encode())))
 			claim["query_hash_alg"] = "SHA512"
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claim)
-		signedToken, e := token.SignedString([]byte(u.secretKey[:]))
-		if e != nil {
-			fmt.Println(e)
+		at := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+		token, err := at.SignedString([]byte(u.secretKey))
+
+		if err != nil {
 			return nil, nil
 		}
 
-		request.Header.Add("Authorization", "Bearer "+signedToken)
+		request.Header.Add("Authorization", "Bearer "+token)
 	case ApiSectionQuotation:
 	default:
 		return nil, fmt.Errorf("invalid api section")
